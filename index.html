@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Antialérgicos</title>
+
+<style>
+body { font-family: Arial; background:#eef2f7; text-align:center; }
+.container { max-width:650px; margin:auto; background:white; padding:25px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+input, button { padding:10px; margin:8px; }
+button { cursor:pointer; border:none; border-radius:6px; background:#4CAF50; color:white; }
+#skip { background:#f39c12; }
+#next { background:#3498db; }
+#timer { font-size:18px; font-weight:bold; }
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🤧 Quiz Antialérgicos</h2>
+
+<div id="start">
+<input id="name" placeholder="Tu nombre">
+<br>
+<button id="startBtn">Iniciar Quiz</button>
+</div>
+
+<div id="quiz" style="display:none;">
+<p id="progress"></p>
+<p id="timer"></p>
+<p id="question"></p>
+
+<input id="answer" placeholder="Escribe tu respuesta">
+<br>
+
+<button id="submit">Responder</button>
+<button id="skip">No estoy seguro</button>
+
+<p id="feedback"></p>
+<button id="next" style="display:none;">Siguiente</button>
+</div>
+
+<div id="result" style="display:none;"></div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+let questions = [
+
+{q:"Receptor bloqueado por antihistamínicos clásicos en alergia", a:["h1"]},
+
+{q:"Fármaco antihistamínico de primera generación", a:["difenhidramina"]},
+
+{q:"Efecto adverso principal de antihistamínicos de primera generación", a:["sedacion"]},
+
+{q:"Fármaco antihistamínico de segunda generación", a:["loratadina","cetirizina"]},
+
+{q:"Ventaja de antihistamínicos de segunda generación", a:["menos sedacion"]},
+
+{q:"Mecanismo de antihistamínicos H1", a:["bloquean histamina"]},
+
+{q:"Mediador liberado por mastocitos en alergia", a:["histamina"]},
+
+{q:"Fármaco de elección en anafilaxia", a:["adrenalina","epinefrina"]},
+
+{q:"Mecanismo de adrenalina en anafilaxia", a:["vasoconstriccion broncodilatacion"]},
+
+{q:"Receptores activados por adrenalina en anafilaxia", a:["alpha y beta","alpha beta"]},
+
+{q:"Fármaco que estabiliza mastocitos", a:["cromoglicato"]},
+
+{q:"Mecanismo de cromoglicato", a:["inhibe degranulacion"]},
+
+{q:"Uso de cromoglicato", a:["profilaxis"]},
+
+{q:"Fármaco que reduce inflamación alérgica severa", a:["corticoides"]},
+
+{q:"Uso de corticoides en alergia", a:["casos severos"]},
+
+{q:"Caso: paciente con urticaria leve, tratamiento inicial", a:["antihistaminicos"]},
+
+{q:"Caso: paciente con anafilaxia, manejo inmediato", a:["adrenalina"]},
+
+{q:"Efecto de histamina en vasos", a:["vasodilatacion"]},
+
+{q:"Efecto de histamina en bronquios", a:["broncoconstriccion"]},
+
+{q:"Fármaco que bloquea síntomas de rinitis alérgica", a:["loratadina","cetirizina"]},
+
+{q:"Caso: paciente con alergia y somnolencia por medicamento", a:["difenhidramina"]},
+
+{q:"Fármaco que actúa evitando liberación de histamina", a:["cromoglicato"]},
+
+{q:"Efecto adverso anticolinérgico de antihistamínicos", a:["sequedad"]},
+
+{q:"Caso: paciente con anafilaxia presenta hipotensión, mecanismo", a:["vasodilatacion"]},
+
+{q:"Fármaco que revierte broncoespasmo en anafilaxia", a:["adrenalina"]},
+
+{q:"Diferencia entre antihistamínicos de 1ra y 2da generación", a:["sedacion"]},
+
+{q:"Fármaco útil en rinitis alérgica crónica", a:["loratadina"]},
+
+{q:"Caso: paciente con alergia persistente, profilaxis", a:["cromoglicato"]},
+
+{q:"Fármaco que reduce respuesta inmune en alergia severa", a:["corticoides"]},
+
+{q:"Mecanismo de antihistamínicos sobre receptores", a:["bloqueo competitivo"]},
+
+{q:"Caso: paciente con broncoespasmo + edema laríngeo, tratamiento", a:["adrenalina"]}
+
+];
+
+let selected = [];
+let index = 0;
+let score = 0;
+let timer;
+let timeLeft = 60;
+let answered = false;
+
+function normalize(text){
+return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+function startQuiz(){
+let name = document.getElementById("name").value;
+if(!name) return alert("Ingresa tu nombre");
+
+localStorage.setItem("name", name);
+
+selected = questions.sort(()=>0.5-Math.random()).slice(0,10);
+index = 0;
+score = 0;
+
+document.getElementById("start").style.display="none";
+document.getElementById("quiz").style.display="block";
+
+loadQuestion();
+}
+
+function loadQuestion(){
+answered = false;
+timeLeft = 60;
+
+document.getElementById("answer").value="";
+document.getElementById("answer").disabled=false;
+document.getElementById("feedback").innerHTML="";
+document.getElementById("next").style.display="none";
+
+document.getElementById("progress").innerText=`Pregunta ${index+1}/10`;
+document.getElementById("question").innerText=selected[index].q;
+
+startTimer();
+}
+
+function startTimer(){
+clearInterval(timer);
+timer = setInterval(()=>{
+timeLeft--;
+document.getElementById("timer").innerText=`⏱️ ${timeLeft}s`;
+
+if(timeLeft<=0){
+clearInterval(timer);
+handleAnswer(null,true);
+}
+},1000);
+}
+
+function handleAnswer(userAnswer, timeout=false){
+if(answered) return;
+answered = true;
+clearInterval(timer);
+
+document.getElementById("answer").disabled = true;
+
+let correctAnswers = selected[index].a.map(a=>normalize(a));
+let user = normalize(userAnswer || "");
+
+let isCorrect = correctAnswers.includes(user);
+
+let points = isCorrect ? Math.round((timeLeft/60)*10) : 0;
+score += points;
+
+let feedback = "";
+
+if(timeout){
+feedback = `❌ Tiempo agotado (0 pts)<br>Respuesta: ${correctAnswers[0]}`;
+}else if(userAnswer===null){
+feedback = `❌ 0 pts<br>Respuesta: ${correctAnswers[0]}`;
+}else if(isCorrect){
+feedback = `✅ Correcto (+${points})`;
+}else{
+feedback = `❌ Incorrecto (0 pts)<br>Respuesta: ${correctAnswers[0]}`;
+}
+
+document.getElementById("feedback").innerHTML=feedback;
+document.getElementById("next").style.display="block";
+}
+
+function nextQuestion(){
+index++;
+if(index<10){
+loadQuestion();
+}else{
+endQuiz();
+}
+}
+
+function endQuiz(){
+document.getElementById("quiz").style.display="none";
+document.getElementById("result").style.display="block";
+
+let name = localStorage.getItem("name");
+let record = {name, score, date:new Date().toISOString(), tema:"antialergicos"};
+
+let history = JSON.parse(localStorage.getItem("history")||"[]");
+history.push(record);
+localStorage.setItem("history", JSON.stringify(history));
+
+document.getElementById("result").innerHTML = `
+<h3>🎯 Puntaje: ${score}/100</h3>
+<button onclick="location.reload()">Reintentar</button>
+`;
+}
+
+document.getElementById("startBtn").addEventListener("click", startQuiz);
+document.getElementById("submit").addEventListener("click", ()=>handleAnswer(document.getElementById("answer").value));
+document.getElementById("skip").addEventListener("click", ()=>handleAnswer(null));
+document.getElementById("next").addEventListener("click", nextQuestion);
+
+});
+</script>
+
+</body>
+</html>
